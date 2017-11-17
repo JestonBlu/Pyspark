@@ -16,9 +16,10 @@ spark = SparkSession \
 
 # Import Data
 dta = spark.read.csv("data/HOF_tr.csv", header=True, inferSchema=True)
+dta.printSchema()
 
 # Assemble the features using R notation
-formula = RFormula(formula="HOF ~ .", featuresCol="features", labelCol="label")
+formula = RFormula(formula="HOF ~ SP + POS + ASG + R + HR + AVG + SLG + OBP", featuresCol="features", labelCol="label")
 dta_features = formula.fit(dta).transform(dta).select("label", "features")
 
 # Scale the data
@@ -27,6 +28,9 @@ input_data = scaler.fit(dta_features).transform(dta_features).select('label', 's
 
 # Split data into testing and training sets
 training, testing = input_data.randomSplit([.8, .2], seed = 1234)
+
+training.describe().show()
+testing.describe().show()
 
 # Logistic Regression Estimator
 lr = LogisticRegression(
@@ -61,9 +65,9 @@ show_columns = ['label', 'prediction', 'rawPrediction', 'probability']
 # Prediction on Training Data
 pred_training_cv = cv_model.transform(training)
 pred_training_cv.select(show_columns).show(4, truncate = False)
+pred_training_cv.groupBy('label', 'prediction').count().show()
 
 # Prediction on Testing Data
 pred_test_cv = cv_model.transform(testing)
 pred_test_cv.select(show_columns).show(4, truncate = False)
-
 pred_test_cv.groupBy('label', 'prediction').count().show()
